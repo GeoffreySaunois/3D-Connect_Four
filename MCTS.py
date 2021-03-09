@@ -1,7 +1,5 @@
 import numpy as np
 from numpy import random
-import torch
-import torch.nn as nn
 import re
 import copy
 
@@ -26,11 +24,17 @@ class MCTS:
         self.key_0 = np.array2string(self.x_0)
         self.visited = {self.key_0: [np.zeros(16), np.zeros(16)]}
 
-    def search(self, game): #(self, game, nnet):
+    def search(self, game_state):  # (self, game, nnet):
         # we return -1 here because it's the turn following the win
+        game = copy.deepcopy(game_state)
+        print(3)
         if game.check_connect4():
             return -1
         state = np.array2string(game.board)
+
+
+        print(game.board)
+
 
         if state not in self.visited:
             self.visited.update({state: [np.zeros(16), np.zeros(16)]})
@@ -58,7 +62,7 @@ class MCTS:
         a = best_a
 
         game.add_tokens(a)
-        v = self.search(game)  #game, nnet
+        v = self.search(game)  # game, nnet
 
         Q = self.visited.get(state)[0][positions.get(a)]
         N_a = self.visited.get(state)[1][positions.get(a)]
@@ -72,3 +76,7 @@ def string2array(string):
     string = re.sub(r'\W+', '', string)
     array = np.array(list(string)).astype(int)
     return array
+
+
+def print_1():
+    print(1)

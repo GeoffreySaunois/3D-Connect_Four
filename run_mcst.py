@@ -1,20 +1,21 @@
+from Connect4 import *
 from MCTS import *
 from CNN import *
 
 # hyper-parameters
-numIters = 1
+num_iters = 1
 numEps = 1
 threshold = 0.6
 numMCTSSims = 1
 
 
-def policyIterSP(game):
+def policyIterSP():
     # nnet = initNNet()  # initialise random neural network
     nnet = 1
     examples = []
-    for i in range(numIters):
+    for i in range(num_iters):
         for e in range(numEps):
-            examples += executeEpisode(game, nnet)  # collect examples from this game
+            examples += executeEpisode(nnet)  # collect examples from this game
         new_nnet = trainNNet(examples)
         frac_win = compare_nets(new_nnet, nnet)  # compare new net with previous net
         if frac_win > threshold:
@@ -22,14 +23,14 @@ def policyIterSP(game):
     return nnet
 
 
-def executeEpisode(game): #executeEpisode(game, nnet):
+def executeEpisode():  # executeEpisode(game, nnet):
     examples = []
-    s = game
+    game = Game()
     mcts = MCTS()  # initialise search tree
 
     while True:
         for _ in range(numMCTSSims):
-            mcts.search(s, game) #mcts.search(s, game, nnet)
+            mcts.search(game)  # mcts.search(s, game, nnet)
             print(mcts.visited)
         examples.append([s, mcts.pi(s), None])  # rewards can not be determined yet
         a = random.choice(len(mcts.pi(s)), p=mcts.pi(s))  # sample action from improved policy
@@ -38,8 +39,9 @@ def executeEpisode(game): #executeEpisode(game, nnet):
             examples = assignRewards(examples, game.gameReward(s))
             return examples
 
-game = Game()
-executeEpisode(game)
+
+executeEpisode()
+
 
 def compare_nets():
     return 0
