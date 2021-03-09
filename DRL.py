@@ -6,22 +6,23 @@ import torch.nn as nn
 
 class DQNAgent(nn.Module):
 
-    def __init__(self, name, lr=1e-5, gamma=0.99):
+    def __init__(self, name, in_dim=128, h_dim=128, out_dim=16, lr=1e-5, gamma=0.99):
         super(DQNAgent, self).__init__()
         self.name = name
-        self.in_dim = 128
-        self.out_dim = 16
+        self.in_dim = in_dim
+        self.h_dim = h_dim
+        self.out_dim = out_dim
         self.lr = lr
         # self.gamma = gamma
 
         self.fc = nn.Sequential(
-            nn.Linear(self.in_dim, 128),
+            nn.Linear(self.in_dim, self.h_dim),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(self.h_dim, self.h_dim),
             nn.ReLU(),
-            nn.Linear(128, 256),
+            nn.Linear(self.h_dim, 2*self.h_dim),
             nn.ReLU(),
-            nn.Linear(256, self.out_dim)
+            nn.Linear(2*self.h_dim, self.out_dim)
         )
 
         self.optimizer = torch.optim.Adam(self.fc.parameters(), lr=self.lr)
