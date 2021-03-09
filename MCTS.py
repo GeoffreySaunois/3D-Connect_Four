@@ -17,24 +17,21 @@ class MCTS:
 
     def __init__(self):
         # start dictionary for MCTS exploration
+        #  {'state': [Q], [N]}
         # keys: strings corresponding to the board
         # values: [Q values for the state, number of visits]
-        # first key is empty board
-        self.x_0 = np.zeros(64)
-        self.key_0 = np.array2string(self.x_0)
-        self.visited = {self.key_0: [np.zeros(16), np.zeros(16)]}
+        self.visited = {}
 
     def search(self, game_state):  # (self, game, nnet):
         # we return -1 here because it's the turn following the win
-        game = copy.deepcopy(game_state)
-        print(3)
-        if game.check_connect4():
+        new_game = copy.deepcopy(game_state)
+
+        if new_game.check_connect4(show=False):
             return -1
-        state = np.array2string(game.board)
 
-
-        print(game.board)
-
+        new_game.board = new_game.board.reshape(1, 64)
+        state = np.array2string(new_game.board)
+        print(state)
 
         if state not in self.visited:
             self.visited.update({state: [np.zeros(16), np.zeros(16)]})
@@ -50,7 +47,7 @@ class MCTS:
 
         max_u, best_a = -float("inf"), -1
         N = np.sum(self.visited.get(state)[1])
-        for a in game.free_positions():
+        for a in new_game.free_positions():
             # u = Q[s][a] + c_puct * P[s][a] * sqrt(sum(N[s])) / (1 + N[s][a])
             Q = self.visited.get(state)[0][positions.get(a)]
             P = prediction[positions.get(a)]
@@ -61,8 +58,8 @@ class MCTS:
                 best_a = a
         a = best_a
 
-        game.add_tokens(a)
-        v = self.search(game)  # game, nnet
+        new_game.add_tokens(a)
+        v = self.search(new_game)  # game, nnet
 
         Q = self.visited.get(state)[0][positions.get(a)]
         N_a = self.visited.get(state)[1][positions.get(a)]
