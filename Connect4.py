@@ -173,6 +173,9 @@ class Game:
         # la partie
         self.position_value = [0]
 
+        # Record the moves played
+        self.moves = []
+
 
     def display_board(self, title=None):
         """
@@ -224,6 +227,7 @@ class Game:
                 self.board_j2[_x + 4 * _y + 16 * _z] = 1
             self.ntok += 1
             self.update_pos_val(_x + 4 * _y + 16 * _z, _player)
+            self.moves.append(pos)
             if _z == 3:
                 self.free_positions.remove(pos)
         else:
@@ -262,7 +266,13 @@ class Game:
             self.position_value.pop()
             if _z == 3:
                 self.free_positions.append(pos)
+                self.free_positions = list(np.sort(self.free_positions))
         return None
+
+    def remove_last(self):
+        pos = self.moves.pop()
+        print("Token removed in position", pos)
+        self.remove_token(pos)
 
     def add_tokens(self, *args):
         """
@@ -349,9 +359,7 @@ class Game:
         last_val = self.position_value[-1]
 
         s_j1 = self.board_j1[friends].reshape(-1, 3).sum(axis=1)
-        print("s_j1\n", s_j1)
         s_j2 = self.board_j2[friends].reshape(-1, 3).sum(axis=1)
-        print("s_j2\n", s_j2)
         if player == 1:
             new_val = last_val + ((s_j2 == 0).sum() + np.dot(s_j2, (s_j1 == 0))).item()
         else:

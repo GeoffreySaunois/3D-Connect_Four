@@ -8,131 +8,150 @@ import numpy.random as npr
 from random import sample
 import torch.nn.functional as F
 
-
 ##
 n_epochs = 10000
 
 replay_memory_size = 1000
-tau_ini = 1
-tau_fin = 1
 batch_size = 64
 gamma = 0.9
+lr = 1e-3
 ##
-agent = DQNAgent('Chamby')
+agent = DQNAgent('Chamby', lr=lr)
 # todd = DQNAgent('Todd')         # Joueur 1
 # alice = DQNAgent('Alice')       # Joueur 2
 # agents = [todd, alice]
-current_game = Game()
 # past_state = None
 # past_action = None
-temp = [None, None]                         # (past_state, past_action)
-replay_memory = []
 ##
 
-def get_action(state, game, _tau=1.):
+
+def get_action(state, _tau=1.):
     # Plus tard : jouer le coup gagnat si disponible
     probas = F.softmax(agent(state) * _tau, dim=0).detach().numpy()
     return npr.choice(len(probas), p=probas)
+
 
 def get_action_eps(state, game, _eps=0):
     # Plus tard : jouer le coup gagnat si disponible
     if npr.rand() < _eps:
         ind = npr.randint(len(game.free_positions))
-        return pos_to_seize(game.free_positions(ind))
+        return pos_to_seize(game.free_positions[ind])
     else:
         return agent(state).detach().numpy().argmax()
 
-# def get_next_state_and_reward(game, action):
-#     """
-#     Si état final, renvoie un plateau vide
-#     Reward de +1 si victoire, -1 si défaite au prochain coup, -10 si coup invalide
-#     :param game:
-#     :param action:
-#     :return:
-#     """
-#     reward = 0
-#     pos = seize_to_pos(action)
-#     final = False
-#     if pos not in game.free_positions:     # L'agent a joué un coup illégal
-#         reward = -100.
-#         # final = True
-#         # game.clear_board()
-#     else:
-#         game.add_tokens(pos)
-#
-#         if game.check_connect4(show=False):          # On vient de gagner
-#
-#             reward = 1.
-#             final = True
-#             game.clear_board()
-#         elif game.end_game():
-#             reward = -0.1
-#             final = True
-#             game.clear_board()
-#
-#     new_state = game.get_state()
-#     return new_state, reward, final
 
 def add_replay_move(game, _tau=None, _eps=None):
     # Ajout d'un nouveau coup à la base de données
     state = game.get_state()
     if _tau is not None:
         action = get_action(state, _tau=_tau)
-    else :
+    else:
         action = get_action_eps(state, game, _eps)
     pos = seize_to_pos(action)
 
-    try_count = 0
-    while pos not in game.free_positions:       # L'agent a joué un coup illégal
+    # try_count = 0
+    if pos not in game.free_positions:
+        # L'agent a joué un coup illégal
         replay_memory.append((state, action, state, -100., True))
-        try_count += 1
-        if try_count < 10:
-            action = get_action(state, _tau=_tau)
-        else:
-            ind = npr.randint(len(game.free_positions))
-            pos = game.free_positions[ind]
-            action = pos_to_seize(pos)
+        if start_display:
+            print("Tentative de coup illégal")
+            # game.display_board()
+        # On joue à la place un coup aléatoire parmi les coups possibles
+        ind = npr.randint(len(game.free_positions))
+        pos = game.free_positions[ind]
+        action = pos_to_seize(pos)
 
     game.add_tokens(pos)
 
     if game.check_connect4(show=False):  # On vient de gagner
         replay_memory.append((temp[0], temp[1], temp[0], -1., True))
         replay_memory.append((state, action, state, 1., True))
-        game.clear_board()
-        temp[0] = None
-        temp[1] = None
+        if start_display:
+            print("Fini par p4")
+            game.display_board(title='Ui')
+        game.clear_board()  # Reset board
+        temp[0] = None  # past_state = None
+        temp[1] = None  # past_action = None
 
     if game.end_game():
-        game.clear_board()
-        replay_memory.append((temp[0], temp[1], temp[0], -0.1, True))
-        replay_memory.append((state, action, state, -0.1, True))
+        replay_memory.append((temp[0], temp[1], temp[0], 0., True))
+        replay_memory.append((state, action, state, 0., True))
+        if start_display:
+            print("Fini car rempli")
+            game.display_board()
+        game.clear_board()  # Reset board
+        temp[0] = None  # past_state = None
+        temp[1] = None  # past_action = None
+
 
     new_state = game.get_state()
     if temp[0] is not None:
         replay_memory.append((temp[0], temp[1], new_state, 0., False))
-    temp[0] = new_state
+    temp[0] = state
     temp[1] = action
+
 
 def compute_q(agent_output, _actions):
     return agent_output[torch.arange(agent_output.shape[0]), _actions]
 
+
 def compute_targets_q(_next_states, _rewards, _finals, _gamma):
-    return _rewards + _gamma * _finals * torch.max(agent(_next_states), dim=1)[0]
+    return _rewards + _gamma * (1 - _finals * 1) * torch.max(agent(_next_states), dim=1)[0]
 
+current_game = Game()
+temp = [None, None]  # (past_state, past_action)
+replay_memory = []
+start_display = False
+count_display = 0
 
-for _ in range(replay_memory_size):
-    add_replay_move(current_game, tau_ini)
+n_epochs = 30000
+# tau_ini = 100
+# tau_fin = 100
+eps_ini = 1
+eps_fin = 0.05
 
 loss_mean = 0
 inv_play_mean = 0
 loss_history = []
 inv_play_history = []
+
+for _ in range(replay_memory_size):
+    add_replay_move(current_game, eps_ini)
+while len(replay_memory) > replay_memory_size:
+    replay_memory.pop(0)
+
 for epoch in range(n_epochs):
-    tau = tau_ini + epoch * (tau_fin - tau_ini) / n_epochs
+    agent.optimizer.zero_grad()
+
+    eps = eps_ini + epoch * (eps_fin - eps_ini) / n_epochs
 
     # Ajout d'un nouveau coup
-    add_replay_move(current_game, tau)
-    replay_memory.pop(0)
+    # print("replay_mem size %d" %len(replay_memory))
+    add_replay_move(current_game, _eps=eps)
+    new_entries = len(replay_memory) - replay_memory_size
+    if new_entries > 3:
+        print('Noooooon')
+        4/0
+    while len(replay_memory) > replay_memory_size:
+        replay_memory.pop(0)
+
+    # # On regarde des trucs:
+    # if epoch > 512:
+    #     if current_game.ntok == 0:
+    #         if not start_display:
+    #             start_display = True
+    #         else:
+    #             4 / 0
+    #     if start_display:
+    #         count_display += 1
+    #         print('n_tok: %d, n# new_entries: %d, count_display: %d'
+    #               % (current_game.ntok,
+    #                  new_entries,
+    #                  count_display))
+    #         print(np.abs(current_game.board).sum(axis=2))
+    #         if count_display > 70:
+    #             4 / 0
+            # print(current_game.display_board())
 
     # Entrainement
     batch = sample(replay_memory, batch_size)
@@ -146,14 +165,14 @@ for epoch in range(n_epochs):
     target_q_values = compute_targets_q(next_states, rewards, finals, gamma)
     target_q_values.detach()
 
-    agent.optimizer.zero_grad()
     loss = F.mse_loss(q_values, target_q_values)
     loss.backward()
+    agent.optimizer.step()
 
     loss_mean += loss.item() / batch_size
     inv_play_mean += finals.sum().float().item() / batch_size
-    loss_history.append(loss_mean / batch_size / (epoch+1))
-    inv_play_history.append(inv_play_mean / (epoch+1))
+    loss_history.append(loss_mean / batch_size / (epoch + 1))
+    inv_play_history.append(inv_play_mean / (epoch + 1))
 
     print("\rEpoch %d/%d, loss = %.4f, invalid rate = %.4f"
           % (epoch,
@@ -176,13 +195,19 @@ plt.show()
 
 g = Game()
 
-
 ##
 agent(g.get_state()).view(4, 4)
 
 ##
-print(agent(g.get_state()).view(4, 4))
-n = torch.argmax(agent(g.get_state())).item()
-print(10 * (n//4) + (n % 4))
-##
+def play():
+    print(agent(g.get_state()).view(4, 4))
+    n = torch.argmax(agent(g.get_state())).item()
+    pos = 10 * (n // 4) + (n % 4)
+    print(pos)
+    g.add_tokens(pos)
+    g.display_board(g.ntok)
+    if g.check_connect4(show=False):
+        print('Connect 4 !!')
+        g.clear_board()
 
+##
