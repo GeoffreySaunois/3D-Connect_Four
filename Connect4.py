@@ -189,15 +189,26 @@ class Game:
         ax.set_xticks([0, 1, 2, 3])
         ax.set_yticks([0, 1, 2, 3])
         ax.set_zticks([0, 1, 2, 3])
+
+        # plot des colonnes verticales sur lesquelles s'insèrent les jetons
+        for i in range(4):
+            for j in range(4):
+                x = [i, i]
+                y = [j, j]
+                z = [0 - 0.15, 3 - 0.15]
+                ax.plot(x, y, z, c='saddlebrown', linewidth=6,
+                        alpha=0.3, zorder=1)
+
         for i in range(4):
             for j in range(4):
                 for k in range(4):
                     if self.board[i, j, k] == 1:
-                        ax.scatter(i, j, k, c='yellow', s=100)
+                        ax.scatter(i, j, k, c='gold', s=200, zorder=2)
                     if self.board[i, j, k] == -1:
-                        ax.scatter(i, j, k, c='red', s=100)
-        if title is not None:
-            plt.title(title)
+                        ax.scatter(i, j, k, c='firebrick', s=200, zorder=2)
+        ax.grid(False)
+        ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+        ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         plt.show()
         return None
 
@@ -215,14 +226,16 @@ class Game:
             _z += 1
             if _z == 4:
                 break
+        # print("je suis __adtoken, et xyz=", _x, _y, _z)
         if _z < 4:          # Ajout du jeton
             self.board[_x, _y, _z] = _player
             if _player == 1:
-                self.binboard_j1 += 2**(_x + 5*_y + 25*_z)
+                # print("je suis toujours dans __adtoken :", _x + 5*_y + 25*_z, 2** int(_x + 5*_y + 25*_z))
+                self.binboard_j1 += 2**int(_x + 5*_y + 25*_z)
                 self.binboard_j1 = int(self.binboard_j1)
                 self.board_j1[_x + 4 * _y + 16 * _z] = 1
             else:
-                self.binboard_j2 += 2**(_x + 5*_y + 25*_z)
+                self.binboard_j2 += 2**int(_x + 5*_y + 25*_z)
                 self.binboard_j2 = int(self.binboard_j2)
                 self.board_j2[_x + 4 * _y + 16 * _z] = 1
             self.ntok += 1
@@ -234,7 +247,7 @@ class Game:
             raise ValueError('Colonne remplie')
         return None
 
-    def remove_token(self, pos):
+    def __remove_token(self, pos):
         """
             Cf self.add_token
         """
@@ -255,11 +268,11 @@ class Game:
         else:  # Ajout du jeton
             self.board[_x, _y, _z] = 0
             if _player == 1:
-                self.binboard_j1 -= 2 ** (_x + 5 * _y + 25 * _z)
+                self.binboard_j1 -= 2 ** int(_x + 5 * _y + 25 * _z)
                 self.binboard_j1 = int(self.binboard_j1)
                 self.board_j1[_x + 4*_y + 16*_z] = 0
             else:
-                self.binboard_j2 -= 2 ** (_x + 5 * _y + 25 * _z)
+                self.binboard_j2 -= 2 ** int(_x + 5 * _y + 25 * _z)
                 self.binboard_j2 = int(self.binboard_j2)
                 self.board_j2[_x + 4 * _y + 16 * _z] = 0
             self.ntok -= 1
@@ -269,10 +282,11 @@ class Game:
                 self.free_positions = list(np.sort(self.free_positions))
         return None
 
-    def remove_last(self):
+    def remove_last(self, show=False):
         pos = self.moves.pop()
-        print("Token removed in position", pos)
-        self.remove_token(pos)
+        if show:
+            print("Token removed in position", pos)
+        self.__remove_token(pos)
 
     def add_tokens(self, *args):
         """
@@ -371,16 +385,6 @@ class Game:
 
 
 g = Game()
-##
-print('Ajout token')
-g.add_tokens(33)
-print(g.position_value)
-print('Ajout token')
-g.add_tokens(30)
-print(g.position_value)
-print('Ajout token')
-g.add_tokens(31)
-print(g.position_value)
 
 ## Random player
 class Player:
