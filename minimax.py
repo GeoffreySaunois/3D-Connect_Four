@@ -108,42 +108,52 @@ class Minimax:
 
         while True:
             if self.game.check_connect4(show=False):
-                self.game.display_board()
+                self.game.display_board2()
                 if (self.game.ntok % 2 == 0) == (human_first):
                     print("L'IA a gagné !")
                 else:
                     print('Vous avez gagné !')
                 break
             if self.game.end_game():
-                self.game.display_board()
+                self.game.display_board2()
                 print("Match Nul !")
                 break
 
             if (self.game.ntok % 2 == 0) == (human_first):
-                player_move = int(input('À vous de jouer ! Rentrez la position de votre coup : '))
-                while player_move not in self.game.free_positions:
-                    print("Coup invalide, les coups disponibles sont:")
-                    print(self.game.free_positions)
+                print('À vous de jouer !')
+                plt.pause(3)
+                while True:
+                    try:
+                        player_move = int(input('Rentrez la position de votre coup : '))
+                        assert player_move in self.game.free_positions
+                        break
+                    except:
+                        print("Coup invalide, les coups disponibles sont:")
+                        print(self.game.free_positions)
                 self.game.add_tokens(player_move)
-                self.game.display_board()
+
             else:
-                node_value, best_move = self.min_ab(-np.inf, np.inf, depth_max)
-                print("L'IA joue en :", best_move, "la valeur du jeu est:", node_value)
+                plt.pause(3)
+                if self.game.ntok == 0:
+                    print("Exploration de l'arbre...", end='')
+                else:
+                    print("Coup pris en compte... Exploration de l'arbre...", end='')
+                if human_first:
+                    node_value, best_move = self.min_ab(-np.inf, np.inf, depth_max)
+                else:
+                    node_value, best_move = self.max_ab(-np.inf, np.inf, depth_max)
+                print("\rL'IA joue en :", best_move, "la valeur du jeu est:", node_value)
                 self.game.add_tokens(best_move)
-                self.game.display_board()
+                self.game.display_board2()
 
 
 g = Game()
 m = Minimax(g)
 
-# start = time.time()
-# m.play_game_ab(depth_max=4)
-# end = time.time()
-# print("Running time for game simulation: ", round(end-start, 7))
-
 ##
 
-m.play_against()
+m.play_against(depth_max=4, human_first=False)
+
 
 ##
 

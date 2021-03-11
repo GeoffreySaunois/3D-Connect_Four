@@ -1,9 +1,14 @@
+# import matplotlib; matplotlib.use("TkAgg")
 import numpy as np
 import matplotlib.pyplot as plt
 import numpy.random as npr
 import torch
+import pandas as pd
+import plotly.express as px
+import plotly.io as pio
+pio.renderers.default = "browser"
 
-
+##
 def seize_to_pos(n):
     """
     Transforme un nombre entre 0 et 15 en une position valable
@@ -56,6 +61,8 @@ class Game:
         # États utilisés par les réseaux de neuronnes
         self.board_j1 = torch.zeros(64)
         self.board_j2 = torch.zeros(64)
+        self.player1_name = 'Player 1'
+        self.player2_name = 'Player 2'
 
         # Réprésentation binaire des positions des jetons du premier joueur
         # (ça permet de vérifier rapidement s'il y a un puissance 4)
@@ -177,10 +184,11 @@ class Game:
         self.moves = []
 
 
-    def display_board(self, title=None):
+    def display_board(self, title=None, interact = False):
         """
             Fonction utilitaire pour afficher le plateau de jeu
         """
+        plt.close('all')
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.axes.set_xlim3d(left=0.2, right=2.8)
@@ -209,8 +217,42 @@ class Game:
         ax.grid(False)
         ax.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
         ax.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-        plt.show()
-        return None
+        if not interact:
+            plt.show()
+            return None
+        else:
+            return fig, ax
+
+    def display_board2(self):
+
+        g = Game()
+        tokens = np.zeros((self.ntok, 3))
+        colors = []
+        count = 0
+        for i in range(4):
+            for j in range(4):
+                for k in range(4):
+                    if self.board[i, j, k] == 1:
+                        tokens[count] = [i, j, k]
+                        colors.append(self.player1_name)
+                        count += 1
+                    if self.board[i, j, k] == -1:
+                        tokens[count] = [i, j, k]
+                        colors.append(self.player2_name)
+                        count += 1
+
+
+        df = pd.DataFrame({'x': tokens[:, 0], 'y': tokens[:, 1], 'z': tokens[:, 2], 'c': colors})
+        fig = px.scatter_3d(df, x='x', y='y', z='z',
+                            color='c', color_discrete_sequence=["gold", "firebrick"])
+        fig.update_layout(
+            scene=dict(
+                xaxis=dict(nticks=4, range=[-0.05, 3.05], ),
+                yaxis=dict(nticks=4, range=[-0.05, 3.05], ),
+                zaxis=dict(nticks=4, range=[-0.05, 3.05], ), ),
+            margin=dict(r=1, l=1, b=1, t=1))
+        fig.update_layout(scene_aspectmode='cube')
+        fig.show()
 
     def __add_token(self, pos):
         """
@@ -226,11 +268,9 @@ class Game:
             _z += 1
             if _z == 4:
                 break
-        # print("je suis __adtoken, et xyz=", _x, _y, _z)
         if _z < 4:          # Ajout du jeton
             self.board[_x, _y, _z] = _player
             if _player == 1:
-                # print("je suis toujours dans __adtoken :", _x + 5*_y + 25*_z, 2** int(_x + 5*_y + 25*_z))
                 self.binboard_j1 += 2**int(_x + 5*_y + 25*_z)
                 self.binboard_j1 = int(self.binboard_j1)
                 self.board_j1[_x + 4 * _y + 16 * _z] = 1
@@ -384,7 +424,10 @@ class Game:
         return self.position_value[-1]
 
 
-g = Game()
+##
+# g = Game()
+# g.add_tokens(11, 12, 11, 12, 11, 12, 11)
+# g.display_board2()
 
 ## Random player
 class Player:
