@@ -31,7 +31,7 @@ class MCTS:
 
         new_game.board = new_game.board.reshape(1, 64)
         state = np.array2string(new_game.board)
-        print(state)
+        #print(state)
 
         if state not in self.visited:
             self.visited.update({state: [np.zeros(16), np.zeros(16)]})
@@ -47,7 +47,7 @@ class MCTS:
 
         max_u, best_a = -float("inf"), -1
         N = np.sum(self.visited.get(state)[1])
-        for a in new_game.free_positions():
+        for a in new_game.free_positions:
             # u = Q[s][a] + c_puct * P[s][a] * sqrt(sum(N[s])) / (1 + N[s][a])
             Q = self.visited.get(state)[0][positions.get(a)]
             P = prediction[positions.get(a)]
@@ -57,7 +57,7 @@ class MCTS:
                 max_u = u
                 best_a = a
         a = best_a
-
+        print(a)
         new_game.add_tokens(a)
         v = self.search(new_game)  # game, nnet
 
@@ -76,4 +76,4 @@ def string2array(string):
 
 
 def print_1():
-    print(1)
+    print(2)
