@@ -7,7 +7,7 @@ num_iters = 1
 mcts_episodes = 1
 threshold = 0.6
 # how many exploration steps each leaf will have during mcts
-num_mcts_exploration = 1
+num_mcts_exploration = 10
 
 
 def policyIterSP():
@@ -44,7 +44,7 @@ def executeEpisode():  # executeEpisode(game, nnet):
 a = executeEpisode()
 ###
 print(len(a.__getattribute__()))
-
+print_1()
 
 def compare_nets():
     return 0
